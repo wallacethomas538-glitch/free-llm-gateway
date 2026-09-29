@@ -2,7 +2,7 @@ from typing import Any
 
 import httpx
 
-from config import PROVIDER_KEYS
+from config import BAZAARLINK_BASE_URL, PROVIDER_KEYS
 
 
 PROVIDERS = {
@@ -21,6 +21,10 @@ PROVIDERS = {
     "huggingface": {
         "base_url": "https://router.huggingface.co/v1",
         "key_name": "huggingface",
+    },
+    "bazaarlink": {
+        "base_url": BAZAARLINK_BASE_URL,
+        "key_name": "bazaarlink",
     },
 }
 
