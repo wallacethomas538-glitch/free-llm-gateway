@@ -19,6 +19,9 @@ PROVIDER_KEYS = {
     "openrouter": get_env("OPENROUTER_API_KEY"),
     "gemini": get_env("GEMINI_API_KEY"),
     "huggingface": get_env("HUGGINGFACE_API_KEY"),
+    "bazaarlink": get_env("BAZAARLINK_API_KEY"),
 }
+
+BAZAARLINK_BASE_URL = get_env("BAZAARLINK_BASE_URL", "https://api.bazaarlink.ai/v1").rstrip("/")
 
 VEKTORFLOW_API_KEY = get_env("VEKTORFLOW_API_KEY")
