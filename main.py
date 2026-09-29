@@ -88,6 +88,15 @@ async def models():
             }
         )
 
+    if PROVIDER_KEYS.get("bazaarlink"):
+        models.append(
+            {
+                "id": "bazaarlink",
+                "object": "model",
+                "owned_by": "bazaarlink",
+            }
+        )
+
     return {
         "object": "list",
         "data": models,
