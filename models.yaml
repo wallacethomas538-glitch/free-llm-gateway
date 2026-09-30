@@ -1,0 +1,14 @@
+# Logical model aliases for the VektorFlow gateway.
+# Provider selection is runtime-driven; these are example model IDs.
+models:
+  auto:
+    - DEFAULT_MODEL
+  fast:
+    - llama-3.3-70b-versatile
+    - openai/gpt-oss-120b:free
+  reasoning:
+    - openai/gpt-oss-120b:free
+    - qwen/qwen3-235b-a22b:free
+  coding:
+    - qwen/qwen3-coder:free
+    - llama-3.3-70b-versatile
