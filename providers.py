@@ -2,7 +2,7 @@ from typing import Any
 
 import httpx
 
-from config import BAZAARLINK_BASE_URL, PROVIDER_KEYS
+from config import BAZAARLINK_BASE_URL, OLLAMA_BASE_URL, PROVIDER_KEYS
 
 
 PROVIDERS = {
@@ -21,6 +21,26 @@ PROVIDERS = {
     "huggingface": {
         "base_url": "https://router.huggingface.co/v1",
         "key_name": "huggingface",
+    },
+    "mistral": {
+        "base_url": "https://api.mistral.ai/v1",
+        "key_name": "mistral",
+    },
+    "deepseek": {
+        "base_url": "https://api.deepseek.com/v1",
+        "key_name": "deepseek",
+    },
+    "cerebras": {
+        "base_url": "https://api.cerebras.ai/v1",
+        "key_name": "cerebras",
+    },
+    "gemini": {
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "key_name": "gemini",
+    },
+    "ollama": {
+        "base_url": OLLAMA_BASE_URL,
+        "key_name": "ollama",
     },
     "bazaarlink": {
         "base_url": BAZAARLINK_BASE_URL,
