@@ -24,7 +24,7 @@ def load_routes(model: str, preferred: str | None = None) -> list[Route]:
     if preferred and preferred in PROVIDERS and _configured(preferred):
         routes.append(Route(preferred, model))
 
-    for provider in ("openrouter", "groq", "huggingface", "openai", "bazaarlink"):
+    for provider in ("openrouter", "groq", "cerebras", "gemini", "mistral", "deepseek", "huggingface", "openai", "bazaarlink", "ollama"):
         if provider in PROVIDERS and _configured(provider):
             route = Route(provider, model)
             if route not in routes:
