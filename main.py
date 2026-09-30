@@ -1,21 +1,18 @@
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from config import (
-    ADMIN_API_KEY,
-    DEFAULT_MODEL,
-    DEFAULT_PROVIDER,
-    PROVIDER_KEYS,
-)
-from providers import available_providers, chat_completion
+from config import ADMIN_API_KEY, DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_KEYS
+from providers import available_providers, PROVIDERS
+from router import chat_with_fallback, stream_with_fallback
 
 
 app = FastAPI(
     title="VektorFlow Free LLM Gateway",
-    version="1.0.0",
-    description="Clean OpenAI-compatible multi-provider LLM gateway.",
+    version="1.1.0",
+    description="Standalone OpenAI-compatible multi-provider gateway for VektorFlow and other clients.",
 )
 
 
@@ -28,11 +25,21 @@ class ChatRequest(BaseModel):
     stream: bool = False
 
 
+def _authorize(authorization: str | None) -> None:
+    if not ADMIN_API_KEY:
+        return
+    supplied = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        supplied = authorization[7:].strip()
+    if supplied != ADMIN_API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid gateway API key")
+
+
 @app.get("/")
 async def root():
     return {
         "name": "VektorFlow Free LLM Gateway",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "status": "online",
         "api": "/v1/chat/completions",
         "health": "/health",
@@ -44,63 +51,19 @@ async def health():
     return {
         "status": "healthy",
         "service": "vektorflow-free-llm-gateway",
-        "providers": available_providers(),
+        "configured_providers": available_providers(),
     }
 
 
 @app.get("/v1/models")
 async def models():
-    models = []
-
-    if PROVIDER_KEYS.get("openrouter"):
-        models.append(
-            {
-                "id": "openrouter",
-                "object": "model",
-                "owned_by": "openrouter",
-            }
-        )
-
-    if PROVIDER_KEYS.get("openai"):
-        models.append(
-            {
-                "id": "openai",
-                "object": "model",
-                "owned_by": "openai",
-            }
-        )
-
-    if PROVIDER_KEYS.get("groq"):
-        models.append(
-            {
-                "id": "groq",
-                "object": "model",
-                "owned_by": "groq",
-            }
-        )
-
-    if PROVIDER_KEYS.get("huggingface"):
-        models.append(
-            {
-                "id": "huggingface",
-                "object": "model",
-                "owned_by": "huggingface",
-            }
-        )
-
-    if PROVIDER_KEYS.get("bazaarlink"):
-        models.append(
-            {
-                "id": "bazaarlink",
-                "object": "model",
-                "owned_by": "bazaarlink",
-            }
-        )
-
-    return {
-        "object": "list",
-        "data": models,
-    }
+    data = []
+    for provider, cfg in PROVIDERS.items():
+        if PROVIDER_KEYS.get(cfg["key_name"]):
+            data.append({"id": provider, "object": "model", "owned_by": provider})
+    if DEFAULT_MODEL:
+        data.append({"id": DEFAULT_MODEL, "object": "model", "owned_by": "gateway"})
+    return {"object": "list", "data": data}
 
 
 @app.post("/v1/chat/completions")
@@ -108,80 +71,50 @@ async def create_chat_completion(
     request: ChatRequest,
     authorization: str | None = Header(default=None),
 ):
+    _authorize(authorization)
 
-    if ADMIN_API_KEY:
-        supplied_key = ""
-
-        if authorization and authorization.lower().startswith("bearer "):
-            supplied_key = authorization[7:].strip()
-
-        if supplied_key != ADMIN_API_KEY:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid gateway API key",
-            )
-
-    provider = request.provider or DEFAULT_PROVIDER
     model = request.model or DEFAULT_MODEL
-
     if not model:
-        raise HTTPException(
-            status_code=400,
-            detail="No model specified. Set DEFAULT_MODEL or provide model.",
-        )
+        raise HTTPException(status_code=400, detail="No model specified. Set DEFAULT_MODEL or provide model.")
 
-    if request.stream:
-        raise HTTPException(
-            status_code=400,
-            detail="Streaming is not enabled in this initial gateway version.",
-        )
-
-    kwargs = {}
-
+    kwargs: dict[str, Any] = {}
     if request.temperature is not None:
         kwargs["temperature"] = request.temperature
-
     if request.max_tokens is not None:
         kwargs["max_tokens"] = request.max_tokens
 
     try:
-        return await chat_completion(
-            provider=provider,
+        if request.stream:
+            route, stream = await stream_with_fallback(
+                model=model,
+                messages=request.messages,
+                preferred_provider=request.provider or DEFAULT_PROVIDER,
+                **kwargs,
+            )
+            return StreamingResponse(
+                stream,
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-VektorFlow-Provider": route.provider,
+                    "X-VektorFlow-Model": route.model,
+                },
+            )
+
+        return await chat_with_fallback(
             model=model,
             messages=request.messages,
+            preferred_provider=request.provider or DEFAULT_PROVIDER,
             **kwargs,
         )
 
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
-
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        )
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 @app.get("/admin/status")
-async def admin_status(
-    authorization: str | None = Header(default=None),
-):
-
-    if ADMIN_API_KEY:
-        supplied_key = ""
-
-        if authorization and authorization.lower().startswith("bearer "):
-            supplied_key = authorization[7:].strip()
-
-        if supplied_key != ADMIN_API_KEY:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid gateway API key",
-            )
-
+async def admin_status(authorization: str | None = Header(default=None)):
+    _authorize(authorization)
     return {
         "service": "vektorflow-free-llm-gateway",
         "default_provider": DEFAULT_PROVIDER,
