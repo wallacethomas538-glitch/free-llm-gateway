@@ -23,7 +23,6 @@ PROVIDER_KEYS = {
     "cerebras": get_env("CEREBRAS_API_KEY"),
     "gemini": get_env("GEMINI_API_KEY"),
     "ollama": get_env("OLLAMA_API_KEY"),
-    "gemini": get_env("GEMINI_API_KEY"),
     "huggingface": get_env("HUGGINGFACE_API_KEY"),
     "bazaarlink": get_env("BAZAARLINK_API_KEY"),
 }
