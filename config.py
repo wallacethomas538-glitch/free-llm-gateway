@@ -11,8 +11,8 @@ OLLAMA_BASE_URL = get_env("OLLAMA_BASE_URL", "http://127.0.0.1:11434/v1").rstrip
 
 ADMIN_API_KEY = get_env("ADMIN_API_KEY")
 
-DEFAULT_PROVIDER = get_env("DEFAULT_PROVIDER", "openrouter")
-DEFAULT_MODEL = get_env("DEFAULT_MODEL")
+DEFAULT_PROVIDER = get_env("DEFAULT_PROVIDER", "groq")
+DEFAULT_MODEL = get_env("DEFAULT_MODEL", "openai/gpt-oss-20b")
 
 PROVIDER_KEYS = {
     "openai": get_env("OPENAI_API_KEY"),
